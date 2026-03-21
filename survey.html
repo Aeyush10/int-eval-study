@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Survey</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F6F4F0;
+      --surface: #FFFFFF;
+      --text: #1A1A1A;
+      --text-secondary: #6B6560;
+      --accent: #2D5A3D;
+      --accent-light: #E8F0EB;
+      --accent-hover: #1E3F2B;
+      --border: #E0DCD6;
+      --error: #B5443A;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ---------- Header ---------- */
+    .header {
+      margin-bottom: 48px;
+      text-align: center;
+    }
+    .header h1 {
+      font-family: 'Fraunces', serif;
+      font-weight: 700;
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+    .participant-badge {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 6px 16px;
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 100px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    /* ---------- States ---------- */
+    .state { display: none; }
+    .state.active { display: block; }
+
+    /* ---------- Loading ---------- */
+    .loading {
+      text-align: center;
+      padding: 80px 0;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---------- Error ---------- */
+    .error-box {
+      text-align: center;
+      padding: 60px 0;
+    }
+    .error-box p {
+      color: var(--error);
+      margin-bottom: 20px;
+    }
+
+    /* ---------- Progress ---------- */
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      margin-bottom: 40px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .progress-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    /* ---------- Question Card ---------- */
+    .question-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.35s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .question-card .q-number {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .question-card .q-text {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 1.15rem;
+      margin-bottom: 24px;
+      line-height: 1.45;
+    }
+
+    /* ---------- Options ---------- */
+    .options { display: flex; flex-direction: column; gap: 10px; }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.93rem;
+    }
+    .option-label:hover {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+    .option-label input[type="radio"] { display: none; }
+    .option-label .radio-dot {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    .option-label input:checked ~ .radio-dot {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+    .option-label input:checked ~ .radio-dot::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px; height: 8px;
+      background: white;
+      border-radius: 50%;
+    }
+    .option-label input:checked ~ .option-text {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .option-label.selected {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .unanswered {
+      border-color: var(--error) !important;
+    }
+    .unanswered .q-number {
+      color: var(--error) !important;
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 32px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled {
+      background: var(--border);
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1.5px solid var(--border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--text-secondary);
+    }
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    /* ---------- Thank You ---------- */
+    .thankyou {
+      text-align: center;
+      padding: 60px 0;
+    }
+    .thankyou .check {
+      width: 64px; height: 64px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+    }
+    .thankyou .check svg { width: 28px; height: 28px; color: var(--accent); }
+    .thankyou h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+    }
+    .thankyou p { color: var(--text-secondary); }
+    .thankyou .pid-display {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: var(--accent-light);
+      border-radius: 8px;
+      display: inline-block;
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.9rem;
+    }
+
+    /* ---------- Config banner ---------- */
+    .config-banner {
+      background: #FFF3CD;
+      border: 1px solid #FFDB6D;
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 32px;
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+    .config-banner strong { display: block; margin-bottom: 4px; font-size: 0.95rem; }
+    .config-banner code {
+      background: rgba(0,0,0,0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ========== CONFIGURATION ========== -->
+    <!-- 
+      Replace these two values with your own URLs after setup:
+      1. APPS_SCRIPT_URL  — your deployed Google Apps Script web app URL
+      2. QUESTIONS_TO_SHOW — how many random questions each participant sees
+    -->
+
+    <div class="header">
+      <h1>Survey</h1>
+      <p>Thank you for participating</p>
+    </div>
+
+    <!-- Loading state -->
+    <div id="state-loading" class="state active">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading questions…</p>
+      </div>
+    </div>
+
+    <!-- Config needed state -->
+    <div id="state-config" class="state">
+      <div class="config-banner">
+        <strong>⚙️ Setup required</strong>
+        Open this HTML file and set your <code>APPS_SCRIPT_URL</code> at the top of the &lt;script&gt; tag.
+        See the README for instructions.
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div id="state-error" class="state">
+      <div class="error-box">
+        <p id="error-message">Something went wrong.</p>
+        <button class="btn btn-secondary" onclick="location.reload()">Try again</button>
+      </div>
+    </div>
+
+    <!-- Survey state -->
+    <div id="state-survey" class="state">
+      <div class="participant-badge" id="pid-badge"></div>
+      <br><br>
+      <div class="progress-label" id="progress-label"></div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div id="questions-container"></div>
+      <div class="actions">
+        <button class="btn btn-primary" id="submit-btn" onclick="handleSubmit()">Submit responses</button>
+      </div>
+    </div>
+
+    <!-- Thank you state -->
+    <div id="state-thankyou" class="state">
+      <div class="thankyou">
+        <div class="check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h2>Thank you!</h2>
+        <p>Your responses have been recorded.</p>
+        <div class="pid-display" id="pid-display"></div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+// ============================================================
+//  ⚙️  CONFIGURE THESE TWO VALUES
+// ============================================================
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwKxKWJrv5nyIj3nG5rJDyu5c40DAPvQriBHiZJyfyaN2f4svUrU9nEU50w69l-urMdOg/exec";   // paste your deployed web app URL here
+const QUESTIONS_TO_SHOW = 3;  // how many random questions per participant
+// ============================================================
+
+let selectedQuestions = [];
+let participantId = "";
+
+// --- State management ---
+function showState(id) {
+  document.querySelectorAll(".state").forEach(s => s.classList.remove("active"));
+  document.getElementById("state-" + id).classList.add("active");
+}
+
+// --- Generate a participant ID (e.g. P-8A3F2C) ---
+function generateParticipantId() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return "P-" + code;
+}
+
+// --- Shuffle array (Fisher-Yates) ---
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// --- Load questions from Apps Script (GET) ---
+async function loadQuestions() {
+  if (!APPS_SCRIPT_URL) {
+    showState("config");
+    return;
+  }
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL);
+    const json = await res.json();
+
+    if (json.status !== "success" || !json.questions.length) {
+      throw new Error("No questions returned. Check your Questions sheet.");
+    }
+
+    const all = json.questions;
+    const count = Math.min(QUESTIONS_TO_SHOW, all.length);
+    selectedQuestions = shuffle(all).slice(0, count);
+    participantId = generateParticipantId();
+
+    renderSurvey();
+    showState("survey");
+  } catch (err) {
+    document.getElementById("error-message").textContent = err.message;
+    showState("error");
+  }
+}
+
+// --- Render questions ---
+function renderSurvey() {
+  document.getElementById("pid-badge").textContent = "Your ID: " + participantId;
+  updateProgress();
+
+  const container = document.getElementById("questions-container");
+  container.innerHTML = "";
+
+  selectedQuestions.forEach((q, idx) => {
+    const card = document.createElement("div");
+    card.className = "question-card";
+    card.id = "card-" + idx;
+    card.style.animationDelay = (idx * 0.07) + "s";
+
+    let optionsHtml = "";
+    q.options.forEach((opt, oi) => {
+      const inputId = "q" + idx + "_o" + oi;
+      optionsHtml += `
+        <label class="option-label" for="${inputId}">
+          <input type="radio" id="${inputId}" name="q${idx}" value="${opt}" onchange="handleOptionSelect(this)">
+          <span class="radio-dot"></span>
+          <span class="option-text">${opt}</span>
+        </label>`;
+    });
+
+    card.innerHTML = `
+      <div class="q-number">Question ${idx + 1} of ${selectedQuestions.length}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="options">${optionsHtml}</div>`;
+
+    container.appendChild(card);
+  });
+}
+
+// --- Option select visual feedback + progress ---
+function handleOptionSelect(input) {
+  const card = input.closest(".question-card");
+  card.classList.remove("unanswered");
+  card.querySelectorAll(".option-label").forEach(l => l.classList.remove("selected"));
+  input.closest(".option-label").classList.add("selected");
+  updateProgress();
+}
+
+// --- Progress bar ---
+function updateProgress() {
+  const total = selectedQuestions.length;
+  const answered = document.querySelectorAll('#questions-container input[type="radio"]:checked').length;
+  const pct = total ? Math.round((answered / total) * 100) : 0;
+  document.getElementById("progress-fill").style.width = pct + "%";
+  document.getElementById("progress-label").textContent = answered + " of " + total + " answered";
+}
+
+// --- Submit ---
+async function handleSubmit() {
+  // Validate all answered
+  let allAnswered = true;
+  const responses = [];
+
+  selectedQuestions.forEach((q, idx) => {
+    const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+    const card = document.getElementById("card-" + idx);
+    if (!selected) {
+      card.classList.add("unanswered");
+      allAnswered = false;
+    } else {
+      responses.push({
+        questionId: q.questionId,
+        response: selected.value
+      });
+    }
+  });
+
+  if (!allAnswered) {
+    // Scroll to first unanswered
+    const first = document.querySelector(".unanswered");
+    if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true;
+  btn.textContent = "Submitting…";
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        participantId: participantId,
+        responses: responses
+      })
+    });
+
+    const json = await res.json();
+    if (json.status !== "success") throw new Error("Submission failed");
+
+    document.getElementById("pid-display").textContent = "Participant ID: " + participantId;
+    showState("thankyou");
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Submit responses";
+    document.getElementById("error-message").textContent = "Submission failed: " + err.message;
+    showState("error");
+  }
+}
+
+// --- Init ---
+loadQuestions();
+</script>
+</body>
+</html>
