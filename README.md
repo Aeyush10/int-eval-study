@@ -139,10 +139,3 @@ Each question-response pair gets its own row:
 | Responses not appearing        | Check your "Responses" tab name is exactly "Responses"   |
 | Old version still showing      | After editing Apps Script, do Deploy → Manage → New version |
 
-
-## Questions sheet URL
-https://docs.google.com/spreadsheets/d/e/2PACX-1vSxkG69fQa9h3e2if5SC5xBtAjbwVBr-8SUoYRBsBbadBBV6UD63MLwaT-n07zzH6lLVyiSM_cgAh78/pub?gid=0&single=true&output=csv
-
-
-## Web App URL
-https://script.google.com/macros/s/AKfycbwKxKWJrv5nyIj3nG5rJDyu5c40DAPvQriBHiZJyfyaN2f4svUrU9nEU50w69l-urMdOg/exec
