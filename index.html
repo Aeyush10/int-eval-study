@@ -145,54 +145,88 @@
       line-height: 1.45;
     }
 
-    /* ---------- Options ---------- */
-    .options { display: flex; flex-direction: column; gap: 10px; }
-
-    .option-label {
+    /* ---------- Likert Scale ---------- */
+    .likert-label {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+    .likert-scale {
       display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .likert-scale label {
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 14px;
-      padding: 14px 18px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
+      gap: 6px;
       cursor: pointer;
-      transition: all 0.2s ease;
-      font-size: 0.93rem;
     }
-    .option-label:hover {
-      border-color: var(--accent);
-      background: var(--accent-light);
-    }
-    .option-label input[type="radio"] { display: none; }
-    .option-label .radio-dot {
-      flex-shrink: 0;
-      width: 20px;
-      height: 20px;
+    .likert-scale input[type="radio"] { display: none; }
+    .likert-scale .likert-btn {
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       border: 2px solid var(--border);
-      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text-secondary);
       transition: all 0.2s ease;
     }
-    .option-label input:checked ~ .radio-dot {
-      border-color: var(--accent);
-      background: var(--accent);
-    }
-    .option-label input:checked ~ .radio-dot::after {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 8px; height: 8px;
-      background: white;
-      border-radius: 50%;
-    }
-    .option-label input:checked ~ .option-text {
-      color: var(--accent);
-      font-weight: 500;
-    }
-    .option-label.selected {
+    .likert-scale label:hover .likert-btn {
       border-color: var(--accent);
       background: var(--accent-light);
+      color: var(--accent);
+    }
+    .likert-scale input:checked ~ .likert-btn {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+    .likert-endpoints {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: -4px;
+      margin-bottom: 28px;
+      padding: 0 8px;
+    }
+
+    /* ---------- Textarea ---------- */
+    .text-label {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .text-response {
+      width: 100%;
+      min-height: 100px;
+      padding: 14px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.93rem;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--bg);
+      resize: vertical;
+      transition: border-color 0.2s ease;
+    }
+    .text-response:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .text-response::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.6;
     }
 
     .unanswered {
@@ -334,11 +368,11 @@
     <div id="state-survey" class="state">
       <div class="participant-badge" id="pid-badge"></div>
       <br><br>
-      <div class="progress-label" id="progress-label"></div>
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
       <div id="questions-container"></div>
       <div class="actions">
-        <button class="btn btn-primary" id="submit-btn" onclick="handleSubmit()">Submit responses</button>
+        <button class="btn btn-secondary" id="back-btn" onclick="navigateQuestion(-1)">Back</button>
+        <button class="btn btn-primary" id="next-btn" onclick="navigateQuestion(1)">Next</button>
+        <button class="btn btn-primary" id="submit-btn" onclick="handleSubmit()" style="display:none;">Submit responses</button>
       </div>
     </div>
 
@@ -362,12 +396,13 @@
 // ============================================================
 //  ⚙️  CONFIGURE THESE TWO VALUES
 // ============================================================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwGtniqwk2QLT-H76k85RQGRasZ0bbppx8mX_OhyQJOx9BZzr8eq1p7puDSTbQdMHefQ/exec";   // paste your deployed web app URL here
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPFnEAgvm3sfbDSbMpwof9anIlxlLa84EVpcnXzqeNcM1BKaBVzDBD_pvBzhsduwv6/exec";   // paste your deployed web app URL here
 const QUESTIONS_TO_SHOW = 3;  // how many random questions per participant
 // ============================================================
 
 let selectedQuestions = [];
 let participantId = "";
+let currentQuestion = 0;
 
 // --- State management ---
 function showState(id) {
@@ -424,7 +459,6 @@ async function loadQuestions() {
 // --- Render questions ---
 function renderSurvey() {
   document.getElementById("pid-badge").textContent = "Your ID: " + participantId;
-  updateProgress();
 
   const container = document.getElementById("questions-container");
   container.innerHTML = "";
@@ -433,72 +467,102 @@ function renderSurvey() {
     const card = document.createElement("div");
     card.className = "question-card";
     card.id = "card-" + idx;
-    card.style.animationDelay = (idx * 0.07) + "s";
+    card.style.display = "none";
 
-    let optionsHtml = "";
-    q.options.forEach((opt, oi) => {
-      const inputId = "q" + idx + "_o" + oi;
-      optionsHtml += `
-        <label class="option-label" for="${inputId}">
-          <input type="radio" id="${inputId}" name="q${idx}" value="${opt}" onchange="handleOptionSelect(this)">
-          <span class="radio-dot"></span>
-          <span class="option-text">${opt}</span>
+    let likertHtml = "";
+    for (let i = 1; i <= 5; i++) {
+      const inputId = "q" + idx + "_l" + i;
+      likertHtml += `
+        <label for="${inputId}">
+          <input type="radio" id="${inputId}" name="q${idx}_likert" value="${i}" onchange="handleLikertSelect(this)">
+          <span class="likert-btn">${i}</span>
         </label>`;
-    });
+    }
 
     card.innerHTML = `
       <div class="q-number">Question ${idx + 1} of ${selectedQuestions.length}</div>
       <div class="q-text">${q.text}</div>
-      <div class="options">${optionsHtml}</div>`;
+      <div class="likert-label">How satisfied were you? (1–5)</div>
+      <div class="likert-scale">${likertHtml}</div>
+      <div class="likert-endpoints"><span>Not at all satisfied</span><span>Very satisfied</span></div>
+      <div class="text-label">Please explain your rating:</div>
+      <textarea class="text-response" id="q${idx}_text" placeholder="Type your explanation here…" oninput="handleTextInput(this)"></textarea>`;
 
     container.appendChild(card);
   });
+
+  currentQuestion = 0;
+  showQuestion(0);
 }
 
-// --- Option select visual feedback + progress ---
-function handleOptionSelect(input) {
-  const card = input.closest(".question-card");
-  card.classList.remove("unanswered");
-  card.querySelectorAll(".option-label").forEach(l => l.classList.remove("selected"));
-  input.closest(".option-label").classList.add("selected");
-  updateProgress();
+// --- Show a specific question and update buttons ---
+function showQuestion(idx) {
+  document.querySelectorAll(".question-card").forEach(c => c.style.display = "none");
+  const card = document.getElementById("card-" + idx);
+  if (card) {
+    card.style.display = "block";
+    card.style.animation = "none";
+    card.offsetHeight; // trigger reflow
+    card.style.animation = "fadeUp 0.35s ease both";
+  }
+
+  const isFirst = idx === 0;
+  const isLast = idx === selectedQuestions.length - 1;
+
+  document.getElementById("back-btn").style.display = isFirst ? "none" : "";
+  document.getElementById("next-btn").style.display = isLast ? "none" : "";
+  document.getElementById("submit-btn").style.display = isLast ? "" : "none";
 }
 
-// --- Progress bar ---
-function updateProgress() {
-  const total = selectedQuestions.length;
-  const answered = document.querySelectorAll('#questions-container input[type="radio"]:checked').length;
-  const pct = total ? Math.round((answered / total) * 100) : 0;
-  document.getElementById("progress-fill").style.width = pct + "%";
-  document.getElementById("progress-label").textContent = answered + " of " + total + " answered";
+// --- Navigate between questions ---
+function navigateQuestion(dir) {
+  // If going forward, validate current question
+  if (dir === 1) {
+    if (!validateQuestion(currentQuestion)) return;
+  }
+
+  currentQuestion += dir;
+  currentQuestion = Math.max(0, Math.min(currentQuestion, selectedQuestions.length - 1));
+  showQuestion(currentQuestion);
+}
+
+// --- Validate a question (likert required, text required) ---
+function validateQuestion(idx) {
+  const card = document.getElementById("card-" + idx);
+  const likert = document.querySelector(`input[name="q${idx}_likert"]:checked`);
+  const text = document.getElementById("q" + idx + "_text").value.trim();
+  if (!likert || !text) {
+    card.classList.add("unanswered");
+    return false;
+  }
+  return true;
+}
+
+// --- Likert select feedback ---
+function handleLikertSelect(input) {
+  input.closest(".question-card").classList.remove("unanswered");
+}
+
+// --- Text input feedback ---
+function handleTextInput(textarea) {
+  textarea.closest(".question-card").classList.remove("unanswered");
 }
 
 // --- Submit ---
 async function handleSubmit() {
-  // Validate all answered
-  let allAnswered = true;
+  // Validate last question
+  if (!validateQuestion(currentQuestion)) return;
+
   const responses = [];
-
   selectedQuestions.forEach((q, idx) => {
-    const selected = document.querySelector(`input[name="q${idx}"]:checked`);
-    const card = document.getElementById("card-" + idx);
-    if (!selected) {
-      card.classList.add("unanswered");
-      allAnswered = false;
-    } else {
-      responses.push({
-        questionId: q.questionId,
-        response: selected.value
-      });
-    }
+    const likert = document.querySelector(`input[name="q${idx}_likert"]:checked`).value;
+    const text = document.getElementById("q" + idx + "_text").value.trim();
+    responses.push({
+      questionId: q.questionId,
+      response1: likert,
+      response2: text
+    });
   });
-
-  if (!allAnswered) {
-    // Scroll to first unanswered
-    const first = document.querySelector(".unanswered");
-    if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
-    return;
-  }
 
   const btn = document.getElementById("submit-btn");
   btn.disabled = true;
