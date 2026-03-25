@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Survey</title>
+  <title>Playbook UX Survey</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <style>
@@ -116,6 +116,16 @@
       font-weight: 500;
     }
 
+    /* ---------- Intro Card ---------- */
+    .intro-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.35s ease both;
+    }
+
     /* ---------- Question Card ---------- */
     .question-card {
       background: var(--surface);
@@ -191,12 +201,31 @@
     }
     .likert-endpoints {
       display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
       color: var(--text-secondary);
       margin-top: -4px;
       margin-bottom: 28px;
       padding: 0 8px;
+    }
+    .likert-endpoints .arrow-line {
+      width: 80px;
+      height: 2px;
+      background: var(--text-secondary);
+      position: relative;
+    }
+    .likert-endpoints .arrow-line::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      border-left: 7px solid var(--text-secondary);
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
     }
 
     /* ---------- Textarea ---------- */
@@ -412,15 +441,15 @@
     -->
 
     <div class="header">
-      <h1>Survey</h1>
-      <p>Thank you for participating</p>
+      <h1>AI Dissatisfaction Survey</h1>
+      <!-- <p>Thank you for participating</p> -->
     </div>
 
     <!-- Loading state -->
     <div id="state-loading" class="state active">
       <div class="loading">
         <div class="spinner"></div>
-        <p>Loading questions…</p>
+        <p>Loading questions… (may take around 10 seconds)</p>
       </div>
     </div>
 
@@ -438,6 +467,19 @@
       <div class="error-box">
         <p id="error-message">Something went wrong.</p>
         <button class="btn btn-secondary" onclick="location.reload()">Try again</button>
+      </div>
+    </div>
+
+    <!-- Intro state -->
+    <div id="state-intro" class="state">
+      <div class="intro-card">
+        <h2 style="font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.4rem; margin-bottom: 16px;">Welcome to the Study</h2>
+        <p style="margin-bottom: 12px;">In this survey, you will be shown a series of conversations between a user and an AI assistant. Each conversation is accompanied by a set of preferences that the user had when interacting with the AI.</p>
+        <p style="margin-bottom: 12px;">Your task is to read the preferences and the conversation, then rate how dissatisfied you would be with the AI's responses given those preferences.</p>
+        <p style="margin-bottom: 24px;">There are no right or wrong answers — we are interested in your honest opinion. The survey should take approximately 5–10 minutes to complete.</p>
+        <div class="actions" style="justify-content: center;">
+          <button class="btn btn-primary" onclick="startSurvey()">Begin Survey</button>
+        </div>
       </div>
     </div>
 
@@ -544,7 +586,7 @@ async function loadQuestions() {
     participantId = generateParticipantId();
 
     renderSurvey();
-    showState("survey");
+    showState("intro");
   } catch (err) {
     document.getElementById("error-message").textContent = err.message;
     showState("error");
@@ -565,7 +607,7 @@ function renderSurvey() {
     card.style.display = "none";
 
     let likertHtml = "";
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 7; i++) {
       const inputId = "q" + idx + "_l" + i;
       likertHtml += `
         <label for="${inputId}">
@@ -604,9 +646,9 @@ function renderSurvey() {
       <div class="q-number">Question ${idx + 1} of ${selectedQuestions.length}</div>
       ${prefsHtml}
       ${convHtml}
-      <div class="likert-label">How satisfied were you? (1–5)</div>
+      <div class="likert-label">How dissatisfied would you be with this conversation, given these preferences? (1–5)</div>
       <div class="likert-scale">${likertHtml}</div>
-      <div class="likert-endpoints"><span>Not at all satisfied</span><span>Very satisfied</span></div>
+      <div class="likert-endpoints"><span class="arrow-line"></span><span>More dissatisfied</span></div>
       <div class="text-label">Please explain your rating:</div>
       <textarea class="text-response" id="q${idx}_text" placeholder="Type your explanation here…" oninput="handleTextInput(this)"></textarea>`;
 
@@ -710,6 +752,11 @@ async function handleSubmit() {
     document.getElementById("error-message").textContent = "Submission failed: " + err.message;
     showState("error");
   }
+}
+
+// --- Start survey from intro screen ---
+function startSurvey() {
+  showState("survey");
 }
 
 // --- Init ---
