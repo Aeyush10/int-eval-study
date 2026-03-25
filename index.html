@@ -31,9 +31,9 @@
     }
 
     .container {
-      max-width: 640px;
+      max-width: 100%;
       margin: 0 auto;
-      padding: 48px 24px 80px;
+      padding: 48px 48px 80px;
     }
 
     /* ---------- Header ---------- */
@@ -236,6 +236,83 @@
       color: var(--error) !important;
     }
 
+    /* ---------- Preferences ---------- */
+    .preferences {
+      margin-bottom: 24px;
+    }
+    .preferences h3 {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      color: var(--accent);
+    }
+    .preferences ul {
+      list-style: none;
+      padding: 0;
+    }
+    .preferences li {
+      padding: 8px 14px;
+      background: var(--accent-light);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 1.1rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ---------- Conversation ---------- */
+    .conversation {
+      margin-bottom: 24px;
+    }
+    .conversation h3 {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+    }
+    .conv-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 600px;
+      overflow-y: auto;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .conv-msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .conv-msg.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .conv-msg.assistant {
+      align-self: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+    .conv-msg-role {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+      opacity: 0.7;
+    }
+
     /* ---------- Buttons ---------- */
     .btn {
       display: inline-flex;
@@ -400,9 +477,19 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPFnEAgvm3sfbD
 const QUESTIONS_TO_SHOW = 3;  // how many random questions per participant
 // ============================================================
 
+const CURATED_QUESTIONS_URL = "questions_creation/curated_questions.json";
+
 let selectedQuestions = [];
+let curatedData = {};
 let participantId = "";
 let currentQuestion = 0;
+
+// --- Escape HTML to prevent XSS ---
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 // --- State management ---
 function showState(id) {
@@ -436,8 +523,16 @@ async function loadQuestions() {
   }
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL);
+    const [res, curatedRes] = await Promise.all([
+      fetch(APPS_SCRIPT_URL),
+      fetch(CURATED_QUESTIONS_URL)
+    ]);
     const json = await res.json();
+    const curatedArr = await curatedRes.json();
+
+    // Index curated questions by question_ID
+    curatedData = {};
+    curatedArr.forEach(q => { curatedData[q.question_ID] = q; });
 
     if (json.status !== "success" || !json.questions.length) {
       throw new Error("No questions returned. Check your Questions sheet.");
@@ -479,9 +574,36 @@ function renderSurvey() {
         </label>`;
     }
 
+    const curated = curatedData[q.questionId];
+    let prefsHtml = "";
+    let convHtml = "";
+
+    if (curated) {
+      // Render amb_specs as preferences list
+      const specsItems = curated.amb_specs.map(s => `<li>${escapeHtml(s)}</li>`).join("");
+      prefsHtml = `
+        <div class="preferences">
+          <h3>Your Preferences</h3>
+          <ul>${specsItems}</ul>
+        </div>`;
+
+      // Render conversation
+      const msgs = curated.conv_log.map(m => {
+        const roleClass = m.role === "user" ? "user" : "assistant";
+        const roleLabel = m.role === "user" ? "You" : "AI";
+        return `<div class="conv-msg ${roleClass}"><div class="conv-msg-role">${roleLabel}</div>${escapeHtml(m.content)}</div>`;
+      }).join("");
+      convHtml = `
+        <div class="conversation">
+          <h3>Conversation</h3>
+          <div class="conv-messages">${msgs}</div>
+        </div>`;
+    }
+
     card.innerHTML = `
       <div class="q-number">Question ${idx + 1} of ${selectedQuestions.length}</div>
-      <div class="q-text">${q.text}</div>
+      ${prefsHtml}
+      ${convHtml}
       <div class="likert-label">How satisfied were you? (1–5)</div>
       <div class="likert-scale">${likertHtml}</div>
       <div class="likert-endpoints"><span>Not at all satisfied</span><span>Very satisfied</span></div>
