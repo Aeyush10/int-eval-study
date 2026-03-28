@@ -515,7 +515,7 @@
 // ============================================================
 //  ⚙️  CONFIGURE THESE TWO VALUES
 // ============================================================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd1tKMDAqJJB_vlCx2xutJCBsdlveFRR1eMy9T2AlEnu1mGGnFPxT7nYNjnF34w8G1Hw/exec";   // paste your deployed web app URL here
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzRo8Ev8iE6on8cFpP_OwdeETakc50mgXO-bVsRBBT3guOQ4mYREN9AmpmaMkhGy5yRtA/exec";   // paste your deployed web app URL here
 const QUESTIONS_TO_SHOW = 3;  // how many random questions per participant
 // ============================================================
 
@@ -605,14 +605,17 @@ function renderSurvey() {
         </label>`;
     }
 
-    const specsItems = q.amb_specs.map(s => `<li>${escapeHtml(s)}</li>`).join("");
+    const ambSpecs = JSON.parse(q.amb_specs);
+    const convLog = JSON.parse(q.conv_log);
+
+    const specsItems = ambSpecs.map(s => `<li>${escapeHtml(s)}</li>`).join("");
     const prefsHtml = `
       <div class="preferences">
         <h3>Your Preferences</h3>
         <ul>${specsItems}</ul>
       </div>`;
 
-    const msgs = q.conv_log.map(m => {
+    const msgs = convLog.map(m => {
       const roleClass = m.role === "user" ? "user" : "assistant";
       const roleLabel = m.role === "user" ? "You" : "AI";
       return `<div class="conv-msg ${roleClass}"><div class="conv-msg-role">${roleLabel}</div>${escapeHtml(m.content)}</div>`;
