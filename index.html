@@ -515,14 +515,11 @@
 // ============================================================
 //  ⚙️  CONFIGURE THESE TWO VALUES
 // ============================================================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPFnEAgvm3sfbDSbMpwof9anIlxlLa84EVpcnXzqeNcM1BKaBVzDBD_pvBzhsduwv6/exec";   // paste your deployed web app URL here
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwd1tKMDAqJJB_vlCx2xutJCBsdlveFRR1eMy9T2AlEnu1mGGnFPxT7nYNjnF34w8G1Hw/exec";   // paste your deployed web app URL here
 const QUESTIONS_TO_SHOW = 3;  // how many random questions per participant
 // ============================================================
 
-const CURATED_QUESTIONS_URL = "questions_creation/curated_questions.json";
-
 let selectedQuestions = [];
-let curatedData = {};
 let participantId = "";
 let currentQuestion = 0;
 
@@ -565,16 +562,8 @@ async function loadQuestions() {
   }
 
   try {
-    const [res, curatedRes] = await Promise.all([
-      fetch(APPS_SCRIPT_URL),
-      fetch(CURATED_QUESTIONS_URL)
-    ]);
+    const res = await fetch(APPS_SCRIPT_URL);
     const json = await res.json();
-    const curatedArr = await curatedRes.json();
-
-    // Index curated questions by question_ID
-    curatedData = {};
-    curatedArr.forEach(q => { curatedData[q.question_ID] = q; });
 
     if (json.status !== "success" || !json.questions.length) {
       throw new Error("No questions returned. Check your Questions sheet.");
@@ -607,7 +596,7 @@ function renderSurvey() {
     card.style.display = "none";
 
     let likertHtml = "";
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= 5; i++) {
       const inputId = "q" + idx + "_l" + i;
       likertHtml += `
         <label for="${inputId}">
@@ -616,31 +605,23 @@ function renderSurvey() {
         </label>`;
     }
 
-    const curated = curatedData[q.questionId];
-    let prefsHtml = "";
-    let convHtml = "";
+    const specsItems = q.amb_specs.map(s => `<li>${escapeHtml(s)}</li>`).join("");
+    const prefsHtml = `
+      <div class="preferences">
+        <h3>Your Preferences</h3>
+        <ul>${specsItems}</ul>
+      </div>`;
 
-    if (curated) {
-      // Render amb_specs as preferences list
-      const specsItems = curated.amb_specs.map(s => `<li>${escapeHtml(s)}</li>`).join("");
-      prefsHtml = `
-        <div class="preferences">
-          <h3>Your Preferences</h3>
-          <ul>${specsItems}</ul>
-        </div>`;
-
-      // Render conversation
-      const msgs = curated.conv_log.map(m => {
-        const roleClass = m.role === "user" ? "user" : "assistant";
-        const roleLabel = m.role === "user" ? "You" : "AI";
-        return `<div class="conv-msg ${roleClass}"><div class="conv-msg-role">${roleLabel}</div>${escapeHtml(m.content)}</div>`;
-      }).join("");
-      convHtml = `
-        <div class="conversation">
-          <h3>Conversation</h3>
-          <div class="conv-messages">${msgs}</div>
-        </div>`;
-    }
+    const msgs = q.conv_log.map(m => {
+      const roleClass = m.role === "user" ? "user" : "assistant";
+      const roleLabel = m.role === "user" ? "You" : "AI";
+      return `<div class="conv-msg ${roleClass}"><div class="conv-msg-role">${roleLabel}</div>${escapeHtml(m.content)}</div>`;
+    }).join("");
+    const convHtml = `
+      <div class="conversation">
+        <h3>Conversation</h3>
+        <div class="conv-messages">${msgs}</div>
+      </div>`;
 
     card.innerHTML = `
       <div class="q-number">Question ${idx + 1} of ${selectedQuestions.length}</div>
@@ -722,7 +703,7 @@ async function handleSubmit() {
     const likert = document.querySelector(`input[name="q${idx}_likert"]:checked`).value;
     const text = document.getElementById("q" + idx + "_text").value.trim();
     responses.push({
-      questionId: q.questionId,
+      questionId: q.question_ID,
       response1: likert,
       response2: text
     });
