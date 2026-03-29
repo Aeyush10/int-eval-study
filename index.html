@@ -505,10 +505,11 @@
     <!-- Intro state -->
     <div id="state-intro" class="state">
       <div class="intro-card">
-        <h2 style="font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.4rem; margin-bottom: 16px;">Welcome to the Study</h2>
-        <p style="margin-bottom: 12px;">In this survey, you will be shown a series of conversations between a user and an AI assistant. Each conversation is accompanied by a set of preferences that the user had when interacting with the AI.</p>
-        <p style="margin-bottom: 12px;">Your task is to read the preferences and the conversation, then rate how dissatisfied you would be with the AI's responses given those preferences.</p>
-        <p style="margin-bottom: 24px;">There are no right or wrong answers — we are interested in your honest opinion. The survey should take approximately 5–10 minutes to complete.</p>
+        <h2 style="font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.4rem; margin-bottom: 16px;">Thank you for participating in our study!</h2>
+        <p style="margin-bottom: 12px;">In this survey, you will be shown 3 conversations between a user and an AI assistant, in which the user is trying to discover some insights about their dataset. Each conversation is accompanied by a set of preferences that the user had when interacting with the AI. Assume that at the end of the conversation, the AI provides the user with the correct answer.</p>
+        <p style="margin-bottom: 12px;">Your task is to rate how dissatisfied you as the user would be in the conversation with the AI assistant given these user preferences. Your rating should not be based on the accuracy of the final output, but rather on how effectively you think the AI addressed the user's preferences to get to the solution. There are no right or wrong answers — we are interested in your honest opinion.</p>
+        <p style="margin-bottom: 24px;">For each conversation, you will provide this rating along with a short explanation of your rating. The survey should take approximately 5 to 10 minutes to complete.</p>
+        <!-- <p style="margin-bottom: 24px;"></p> -->
         <div class="actions" style="justify-content: center;">
           <button class="btn btn-primary" onclick="startSurvey()">Begin Survey</button>
         </div>
@@ -547,7 +548,7 @@
 // ============================================================
 //  ⚙️  CONFIGURE THESE TWO VALUES
 // ============================================================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzRo8Ev8iE6on8cFpP_OwdeETakc50mgXO-bVsRBBT3guOQ4mYREN9AmpmaMkhGy5yRtA/exec";   // paste your deployed web app URL here
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxU7UhxELXdu_Dgh1r7Or8NsEiLJDSI8m-JJ9v3FB9z-6w7O3HM8VfN0hVfNjQ73Lpr/exec";   // paste your deployed web app URL here
 const QUESTIONS_TO_SHOW = 3;  // how many random questions per participant
 // ============================================================
 
@@ -663,6 +664,9 @@ function renderSurvey() {
 
     card.innerHTML = `
       <div class="q-number">Question ${idx + 1} of ${selectedQuestions.length}</div>
+      <div style="background: var(--accent-light); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px;">
+        <span style="font-weight: 500; color: var(--text-secondary);">Name of the data file: </span><strong>${escapeHtml(q.data_file)}</strong>
+      </div>
       ${prefsHtml}
       ${convHtml}
       <div class="likert-label">How dissatisfied would you be with this conversation, given these preferences? (1–5)</div>
