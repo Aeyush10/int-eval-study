@@ -6,6 +6,7 @@
   <title>Playbook UX Survey</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked@4/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -318,9 +319,9 @@
       border-radius: 12px;
       font-size: 1.05rem;
       line-height: 1.5;
-      white-space: pre-wrap;
     }
     .conv-msg.user {
+      white-space: pre-wrap;
       align-self: flex-end;
       background: var(--accent);
       color: white;
@@ -332,6 +333,37 @@
       border: 1px solid var(--border);
       color: var(--text);
       border-bottom-left-radius: 4px;
+    }
+    .conv-msg.assistant p { margin-bottom: 0.6em; }
+    .conv-msg.assistant p:last-child { margin-bottom: 0; }
+    .conv-msg.assistant ul, .conv-msg.assistant ol {
+      padding-left: 1.4em;
+      margin-bottom: 0.6em;
+    }
+    .conv-msg.assistant li { margin-bottom: 0.2em; }
+    .conv-msg.assistant code {
+      background: var(--bg);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.88em;
+    }
+    .conv-msg.assistant pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      margin-bottom: 0.6em;
+    }
+    .conv-msg.assistant pre code {
+      background: none;
+      padding: 0;
+    }
+    .conv-msg.assistant strong { font-weight: 600; }
+    .conv-msg.assistant h1, .conv-msg.assistant h2, .conv-msg.assistant h3 {
+      font-family: 'Fraunces', serif;
+      font-weight: 600;
+      margin-bottom: 0.4em;
     }
     .conv-msg-role {
       font-size: 0.7rem;
@@ -618,7 +650,10 @@ function renderSurvey() {
     const msgs = convLog.map(m => {
       const roleClass = m.role === "user" ? "user" : "assistant";
       const roleLabel = m.role === "user" ? "You" : "AI";
-      return `<div class="conv-msg ${roleClass}"><div class="conv-msg-role">${roleLabel}</div>${escapeHtml(m.content)}</div>`;
+      const content = m.role === "assistant"
+        ? marked.parse(m.content)
+        : escapeHtml(m.content);
+      return `<div class="conv-msg ${roleClass}"><div class="conv-msg-role">${roleLabel}</div>${content}</div>`;
     }).join("");
     const convHtml = `
       <div class="conversation">
